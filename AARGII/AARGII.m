@@ -1,4 +1,15 @@
 function varargout = AARGII(varargin)
+
+% Outline
+% AARGII uses Mathworks' gui-building feature 'guide' to generate a GUI also
+% named AARGII. The AARGII gui enables dendrites to be traced so that all
+% ROIs are spatially referenced to a single user-defined start point. The
+% next step is to verify each detection manually in the Review Data stage.
+% A preferred playlist or audiobook is recommended for this stage.
+
+% Author: Charlie J Gilbride
+% version: 1.0.0
+
 % AARGII MATLAB code for AARGII.fig
 %      AARGII, by itself, creates a new AARGII or raises the existing
 %      singleton*.
@@ -219,6 +230,7 @@ elseif strcmp(kw_str, 'Enter keyword(s) here')
 end
 if isempty(kw_str)
     hObject.String = 'Enter keyword(s) here';
+    keywordStrs = {};
     hObject.ForegroundColor = [0.502 0.502 0.502]; 
     hObject.FontAngle = 'italic';
     handles.edit_shROIsFrCon.String = 'no keyword(s) specified';
@@ -746,6 +758,7 @@ if validFrameRate == 1
         numberOfConditions = size(suffixStrs,2); cConditionIdx = 0; dataIncomplete = 0;
         while cConditionIdx < numberOfConditions && dataIncomplete == 0
             cConditionIdx = cConditionIdx + 1;
+%             breaktry
             peakAmplitudeData = load(strcat(CellName,suffixStrs{cConditionIdx},'_MeasuresRAW.mat'));
             undostring = peakAmplitudeData.undostring; parameters = peakAmplitudeData.parameters;
             CA_Measure = peakAmplitudeData.CA_Measure; Sz_CA_Measure = size(CA_Measure);
@@ -763,6 +776,7 @@ if validFrameRate == 1
                 dataIncomplete = 1;
             end
         end
+        breakTry
         ReviewFit(cDir,suffixStrs,text_status,cConditionIdx,frameRate)
     catch
         conditionsToShow = (1:1:numberOfConditions); dataIncomplete = 1;
