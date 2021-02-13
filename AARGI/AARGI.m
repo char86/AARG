@@ -872,12 +872,12 @@ if AbortLaunch == 0
                     
                     PTOin.ThresOptsID = ThresOptsID;
                     PTOin.options = 'write';
-                    PlotThresholdOptions('write',PTOin)
+                    PlotThresholdOptions(PTOin)
                 else
                     PTOin.options = 'read';
                     PTOin.CellName = CellName;
                     PTOin.slashType = handles.slashType;
-                    PlotThresholdOptions('read',PTOin)
+                    PlotThresholdOptions(PTOin)
                 end
             elseif isempty(strfind(edit_Eval_thres.String, '-')) && isempty(strfind(edit_RawAmpthres.String, '-'))
 %CG: just a single pair of thresholds is being used to detect events.
