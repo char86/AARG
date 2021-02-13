@@ -1,5 +1,6 @@
 function CellBones(varargin)
 
+
 %Outline:
 %CellBones connects each AARG-generated ROI (within 5µm from the dendrite)
 %with any point or points on the image designated by the user. Check the
@@ -31,6 +32,8 @@ function CellBones(varargin)
 %and build a segemented line to where the ROI would be. Use the measurement
 %feature in ImageJ to check that for agreement. 
 
+% Author: Charlie J Gilbride
+% version: 1.0.0
 
 p = inputParser;
 % addParameter(p,'IDString','CG')
@@ -38,7 +41,10 @@ addParameter(p,'datadir',{})
 addParameter(p,'suffixStrs',{'b_TTAP2'})
 addParameter(p,'MaxDistance',5) %CG: MaxDistance in um.
 addParameter(p,'Resolution', 6.25) %CG: 6.25 pixels/um at 100x magnification.
-addParameter(p,'Brightness', 0.5) %CG: 0 = min Brightness and 1 = max Brightness of cell
+addParameter(p,'Brightness', 0.75) %CG: 0 = min Brightness and 1 = max Brightness of cell
+addParameter(p, 'setBrightness', 1) %CG if setBrightness = 1, then CellBones will not reduce the brightness before the user
+%decides which green lines to keep. Note that keeping high brightness of
+%the cell during this step can make it hard to see some green lines
 addParameter(p,'Resize', 'On') %CG: should always be kept on. If there is no resizing the resolution 
 %is divided by 1 and nothing changes. If resize is switched to 'off'
 %without other modifications being made, errors could occur. 
@@ -60,7 +66,8 @@ parse(p,varargin{:}); param = p.Results;
 suffixStrs = param.suffixStrs;
 
 datadir = param.datadir; MaxDistance = param.MaxDistance; Resolution = param.Resolution;
-Brightness = param.Brightness; Overwrite = param.Overwrite; Resize = param.Resize;
+Brightness = param.Brightness; setBrightness = param.setBrightness; 
+Overwrite = param.Overwrite; Resize = param.Resize;
 AddSPorWL = param.AddSPorWL; DeleteGreenLines = param.DeleteGreenLines; 
 SkipDistanceMeasurement = param.SkipDistanceMeasurement; VD = param.VD;
 
@@ -190,6 +197,12 @@ if ischar(datadir)
 %CBfilefound should be set to 0 to allow full function call. 
 end
 
+%CG: whiteROI, anotherROI and anotherColor can be used to change the
+%colour of specifc ROIs (given their CA_ROIs index) for illustrative
+%purposes. Set each variable to be an empty numeric array to disable this
+%feature. 
+whiteROI = 246; anotherROI = 8603; anotherColor = [0.25,0.25,1];
+
 if ischar(datadir) && CBfilefound == 0 
 
     TDFolders_sorted = cell(tdfc, 1);
@@ -274,8 +287,8 @@ if ischar(datadir) && CBfilefound == 0
         TotalCells = Sz_CA_ROIs(1)*Sz_CA_ROIs(2)*Sz_CA_ROIs(3);
     end
     cFullCell = 0; 
+    mySpecialIndices = [1519,246,4487,1530,6554,8603];
     for cCell = 1 : TotalCells
-
         if ~isempty(CA_ROIs{cCell}) && ~ischar(CA_ROIs{cCell}) 
 %CG: [DEPRECATED] subsidary ROIs will fill cells in CA_ROIs with the string 'subsid'.
 %CG: A CA_ROIc might have already been saved. The user may want to redo
@@ -284,8 +297,26 @@ if ischar(datadir) && CBfilefound == 0
             cFullCell = cFullCell + 1;
             [Row, Col, ~] = ind2sub(size(fmedian), CA_ROIs{cCell});
             outlineVals = convhull(Row, Col);
-            ROIpatch = patch(Col(outlineVals), Row(outlineVals),...
-                ROIColor, 'EdgeColor', ROIColor, 'Visible', 'On');
+%             ROIpatch = patch(Col(outlineVals), Row(outlineVals),...
+%                     ROIColor, 'EdgeColor', ROIColor, 'Visible', 'On');
+%             CA_ROIc{cFullCell,1} = CA_ROIs{cCell};
+%             CA_ROIc{cFullCell,2} = ROIpatch;
+%             CA_ROIc{cFullCell,3} = cCell;
+            if ~isempty(anotherROI) && ~isempty(anotherColor) 
+                if cCell == anotherROI
+                    ROIpatch = patch(Col(outlineVals), Row(outlineVals),...
+                        anotherColor, 'EdgeColor', anotherColor, 'Visible', 'On');
+                elseif cCell == whiteROI
+                    ROIpatch = patch(Col(outlineVals), Row(outlineVals),...
+                        [1,1,1], 'EdgeColor', [1,1,1], 'Visible', 'On');
+                else
+                    ROIpatch = patch(Col(outlineVals), Row(outlineVals),...
+                        ROIColor, 'EdgeColor', ROIColor, 'Visible', 'On');
+                end
+            else
+                ROIpatch = patch(Col(outlineVals), Row(outlineVals),...
+                        ROIColor, 'EdgeColor', ROIColor, 'Visible', 'On');
+            end
             CA_ROIc{cFullCell,1} = CA_ROIs{cCell};
             CA_ROIc{cFullCell,2} = ROIpatch;
             CA_ROIc{cFullCell,3} = cCell;
@@ -494,7 +525,7 @@ if ischar(datadir) && CBfilefound == 0
                     elseif strcmp(linehandle_error, 'error1')
                         title(sprintf(strcat('line must start at the end of an existing line or on a start point.\n',...
                             'Or the user must press the "a" key to proceed to the next step')), 'FontSize', 16)
-                        linehandle_error
+                        
                     elseif strcmp(linehandle_error, 'error2')
                         title(sprintf(strcat('finish building last white line (by right-clicking) before pressing "a"')), 'FontSize', 16)
                     elseif strcmp(seltype, 'finish')
@@ -531,7 +562,8 @@ if ischar(datadir) && CBfilefound == 0
                     end
                 end
 
-                t = 0:(1/(numel(AllXorY))):1; Allxy = interparc(t, xPoly, yPoly);
+                t = 0:(1/(numel(AllXorY))):1; 
+                Allxy = interparc(t, xPoly, yPoly);
                 Allxy = round(Allxy);
                 if isempty(Allxy)
                     CA_Bones(end, :) = [];
@@ -541,7 +573,7 @@ if ischar(datadir) && CBfilefound == 0
             elseif strcmp(linehandle_error, 'error1')
                 title(sprintf(strcat('line must start at the end of an existing line or on a start point.\n',...
                     'Or the user must press the "a" key to proceed to the next step')), 'FontSize', 16)
-                linehandle_error
+                
             elseif strcmp(linehandle_error, 'error2')
                 title(sprintf(strcat('finish building last white line (by right-clicking) before pressing "a"')), 'FontSize', 16)
             elseif strcmp(seltype, 'finish')
@@ -593,11 +625,16 @@ if ischar(datadir) && CBfilefound == 0
                 set(CA_ROIc{cROIidx,2},'Visible', 'Off')
             end
 
-            CA_ROIc = skeleton.CA_ROIc; Sz_CA_ROIc = size(CA_ROIc);
+%             CA_ROIc = skeleton.CA_ROIc;
+            CA_ROIc = cat(2, CA_ROIc, skeleton.CA_ROIc(:,4:end));
+            Sz_CA_ROIc = size(CA_ROIc);
             for cROIidx = 1 : Sz_CA_ROIc(1)
-                set(CA_ROIc{cROIidx, 2}, 'Parent', ax1); set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 0 0])
+                set(CA_ROIc{cROIidx, 2}, 'Parent', ax1); 
+                set(CA_ROIc{cROIidx, 2}, 'Visible', 'On')
                 set(CA_ROIc{cROIidx, 6}, 'Parent', ax1);
             end
+            
+
         elseif strcmp(DeleteGreenLines, 'Off') 
 
             Sz_CA_Bones = size(CA_Bones); NumBones = Sz_CA_Bones(1);
@@ -846,9 +883,11 @@ if ischar(datadir) && CBfilefound == 0
 %CG: ROIc_xy can still be empty at this point if the connecting line
 %touches the edge of the image before reaching the target dendritic line. 
                         CA_ROIc{cROIidx, 5} = ROIc_xy;
-                        xpts = ROIc_xy(:,1); ypts = ROIc_xy(:,2);
+                        xpts = ROIc_xy(:,1); 
+                        ypts = ROIc_xy(:,2);
                         lh = line(ypts,xpts,'Color',[0 1 0],'LineWidth',2);
-                        CA_ROIc{cROIidx, 6} = lh; CA_ROIc{cROIidx, 7} = (TotalDistance/Resolution);
+                        CA_ROIc{cROIidx, 6} = lh; 
+                        CA_ROIc{cROIidx, 7} = (TotalDistance/Resolution);
                         set(CA_ROIc{cROIidx, 6}, 'Parent', ax1);
                     end
 
@@ -869,16 +908,22 @@ if ischar(datadir) && CBfilefound == 0
             'Note that grey lines do not represent exclusions. Right-click to undo. Press "k" to delete all grey lines.\n',...
             'Press "a" to accept and move on to next stage.')), 'FontSize', 16)
         k = []; CA_LastAction = {};
+
+        if setBrightness == 1
 %CG: use an image with lower brightess to make the green lines easier to
 %see.
-        logFluoImage = logFluoImage_copy;
-        logFluoImage=logFluoImage-min(logFluoImage(:)); 
-        logFluoImage=logFluoImage/max(logFluoImage(:));                             
-        logFluoImage=uint8(logFluoImage*256);                                       
-        cyanColorMap=([zeros(256,1),linspace(0,1,256)',linspace(0,1,256)']);
-        colormap(cyanColorMap); fmedianRGB=ind2rgb(logFluoImage,cyanColorMap);
-        im2 = imagesc('CData',fmedianRGB);
-        axis image; 
+            im2 = imagesc('CData',fmedianRGB);
+            axis image;
+        else
+            logFluoImage = logFluoImage_copy;
+            logFluoImage=logFluoImage-min(logFluoImage(:)); 
+            logFluoImage=logFluoImage/max(logFluoImage(:));                             
+            logFluoImage=uint8(logFluoImage*256);                                       
+            cyanColorMap=([zeros(256,1),linspace(0,1,256)',linspace(0,1,256)']);
+            colormap(cyanColorMap); fmedianRGB=ind2rgb(logFluoImage,cyanColorMap);
+            im2 = imagesc('CData',fmedianRGB);
+            axis image;
+        end
 %CG: make sure all startpoints, lines etc... are on top.
         uistack(im2, 'bottom'); uistack(im1, 'bottom')
 
@@ -1061,13 +1106,19 @@ if ischar(datadir) && CBfilefound == 0
                 if ~isempty(GreenLine)
                     GreenLineDistance = CA_ROIc{cROIidx,7};
                     ConnCoo = zeros(1,2);
-                    ConnCoo(1) = GreenLine(end,2);
-                    ConnCoo(2) = GreenLine(end,1);
+                    ConnCoo(1) = GreenLine(end,1);
+                    ConnCoo(2) = GreenLine(end,2);
 %CG: coordinates of GreenLine need to be reversed
+%CG: (10Feb21) why do the coordinates of the greenlines need to be
+%reversed? This causes problems with the sample data where the field of
+%view is not square. 
 %CG: gwConnCoo is the coordinate location for the connection point between 
 %the current green line and the connecting white line. Next, find the white
 %line that is the connecting line in CA_Bones. 
                     Top = ConnCoo;
+%                     disp(strcat('ROI name = "', num2str(cROIidx), '"; ConnCoo = "[', num2str(ConnCoo(1)),',',num2str(ConnCoo(2)),']"',...
+%                         '; Sz_fmedianRGB = "[', num2str(Sz_fmedianRGB(1)), ',', num2str(Sz_fmedianRGB(2)),']"'))
+                 
                     ConnIdx = sub2ind([Sz_fmedianRGB(1),Sz_fmedianRGB(2)], ConnCoo(1), ConnCoo(2));
                     GrandTotalDistance = GreenLineDistance;
                     patchidx = []; BoneCollector = []; convidx = [];
@@ -1087,12 +1138,15 @@ if ischar(datadir) && CBfilefound == 0
                             end
 
                             cBoneCoos = CA_Bones{cBoneidx, 3};
+%CG: (10Feb21) after 'unreversing' assignment for the coordinates of the
+%greenlines above, "xidx = cBoneCoos(:,1) == ConnCoo(1,1);" was changed to:
+%"xidx = cBoneCoos(:,1) == ConnCoo(1,2);". Same applies for the next 3
+%lines of code. 
+                            xidx = cBoneCoos(:,1) == ConnCoo(1,2);
+                            yidx = cBoneCoos(:,2) == ConnCoo(1,1);
 
-                            xidx = cBoneCoos(:,1) == ConnCoo(1,1);
-                            yidx = cBoneCoos(:,2) == ConnCoo(1,2);
-
-                            xidx_alt = cBoneCoos(:,2) == ConnCoo(1,1);
-                            yidx_alt = cBoneCoos(:,1) == ConnCoo(1,2);
+                            xidx_alt = cBoneCoos(:,2) == ConnCoo(1,2);
+                            yidx_alt = cBoneCoos(:,1) == ConnCoo(1,1);
 
                             sumidx = xidx + yidx;
 
@@ -1226,7 +1280,14 @@ if ischar(datadir) && CBfilefound == 0
                 end
                 if ~isempty(GreenLine)
                     if ~isempty(convidx)
-                        set(CA_ROIc{cROIidx,2}, 'FaceColor', [1 0 0])
+                        currentROI = CA_ROIc{cROIidx,2};
+                        if ~isempty(find(whiteROI == CA_ROIc{cROIidx,3}, 1))
+                            set(CA_ROIc{cROIidx,2}, 'FaceColor', [1 1 1])
+                        elseif ~isempty(find(anotherROI == CA_ROIc{cROIidx,3}, 1))
+                            set(CA_ROIc{cROIidx,2}, 'FaceColor', anotherColor)
+                        else
+                            set(CA_ROIc{cROIidx,2}, 'FaceColor', [1,0,0])
+                        end
                         set(CA_ROIc{cROIidx,6}, 'Color', [0 1 0])
                     end
                 end
@@ -1306,12 +1367,19 @@ if ischar(datadir) && CBfilefound == 0
         skeleton.CA_StartPoints = CA_StartPoints; skeleton.CA_Bones = CA_Bones; 
         skeleton.CA_ROIc = CA_ROIc; skeleton.CA_Distances = CA_Distances;
 
-        [CA_id,CA_Distances,subsidROIList] = PickROIs(disbran, skeleton);
+        [CA_id,CA_Distances,subsidROIList] = PickROIs(disbran, skeleton, whiteROI, anotherROI, anotherColor);
         skeleton.CA_id = CA_id; skeleton.CA_Distances = CA_Distances; skeleton.subsidROIList = subsidROIList;
         save(CellBonesFile, 'CA_id', 'CA_Distances', 'subsidROIList','-append')
- 
+        
+%CG: inverting list of children for current figure puts the ROIs on top of
+%the green lines.
+        figchi = get(gca, 'Children');
+        inv_figchi = flipud(figchi); inv_figchi(1) = [];
+        inv_figchi = cat(1, inv_figchi, figchi(end));
+        set(gca, 'Children', inv_figchi)
+
         if ~isempty(CA_id)
-            [CA_Bones] = DiscardDeselectedROIs(skeleton);
+            [CA_Bones] = DiscardDeselectedROIs(skeleton, whiteROI, anotherROI, anotherColor);
             skeleton.CA_Bones = CA_Bones;
             save(CellBonesFile, 'CA_Bones','-append')
 
