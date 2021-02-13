@@ -8,9 +8,13 @@ addParameter(p,'ShowTrace',[])
 %CG: controls which traces will be displayed. Values correspond to the
 %level of activity. if ShowTrace = [1 2 3], the traces for the 1st, 2nd and
 %3rd most active ROIs will be displayed.
-addParameter(p,'ConditionSpec',[])
-%CG: Specify condition for which ShowTrace should apply.
-addParameter(p,'TraceYLim',[])
+addParameter(p,'SelectTrace',[])
+%CG: similar to ShowTrace, except SelectTrace will show the trace for which
+%the CA_ROIs index value is given. 
+%CG: for ROIs in supplementary figure 5: [1519 1530 4487 6554 8603]
+addParameter(p,'ConditionSpec',[1])
+%CG: Specify condition for which ShowTrace or SelectTrace should apply.
+addParameter(p,'TraceYLim',[600 1800])
 %CG: set the lower and upper limits for trace plot(s). 
 addParameter(p,'OrderedDimLimit',[])
 %CG: useful for code development/debugging
@@ -69,7 +73,7 @@ addParameter(p,'Dirs',{})
 parse(p,varargin{:}); param = p.Results; 
 
 suffixStrs = param.suffixStrs; IntensityDataType = param.IntensityDataType;
-ShowTrace = param.ShowTrace;  ConditionSpec = param.ConditionSpec;
+ShowTrace = param.ShowTrace;  SelectTrace = param.SelectTrace; ConditionSpec = param.ConditionSpec;
 TraceYLim = param.TraceYLim; OrderedDimLimit = param.OrderedDimLimit; 
 OrderOfROIs = param.OrderOfROIs; haf = param.haf;minval = param.minval; 
 maxtick = param.maxtick; DisplayHeatmaps = param.DisplayHeatmaps;
@@ -143,6 +147,7 @@ if iscell(Dirs)
             savedIntensityDataType = es.IntensityDataType; edges = es.edges;
             if ~strcmp(IntensityDataType, savedIntensityDataType); BreakTry; end
             bones = load(strcat(CellName, '_CellBonesCAs.mat'));
+            breaktry
             CA_ROIc = bones.CA_ROIc; ROIcIdces = cell2mat(CA_ROIc(:,3));
         catch
             bones = load(strcat(CellName, '_CellBonesCAs.mat'));
@@ -535,50 +540,27 @@ if iscell(Dirs)
             end
 
             if ~isempty(find(ConditionSpec==cConditionIdx,1))
-                for ctraceidx = 1 : numel(ShowTrace)
-                    ctrace = ShowTrace(ctraceidx);
-                    ybases = CA_Measure{ctrace,7}; ypeaks = CA_Measure{ctrace,8};
-                    xbases = CA_Measure{ctrace,5}; xpeaks = CA_Measure{ctrace,6};
-                    figure('Name', strcat('CA_ROIs index: "', num2str(ROIidxstore(CA_Measure{ctrace,1})),'"'));
-                    plot(BinIntData(CA_Measure{ctrace,1},:),'k', 'LineWidth', lineWidth)
-                    ax = gca; ax.TickDir = 'out'; 
-                    if ~isempty(ybases)
-                        hold on
-                        plot(xbases,ybases,'.','Color', [0 0.75 0], 'MarkerSize', markerSize)
-                        plot(xpeaks,ypeaks,'r.','MarkerSize', markerSize)
-                        hold off
-                        if ShowTrace(ctraceidx) == 1
-                            titlestr = '1st most active ROI for "';
-                        elseif ShowTrace(ctraceidx) == 2
-                            titlestr = '2nd most active ROI for "';
-                        elseif ShowTrace(ctraceidx) == 3
-                            titlestr = '3rd most active ROI for "';
-                        else
-                            titlestr = strcat(num2str(ShowTrace(ctraceidx)), 'th most active ROI for "');
-                        end
-                        title(strcat(titlestr, CellName, '"; Condition "', suffixStrs{cConditionIdx}, '"'))
-                        ax1 = gca;
-                        if ~isempty(TraceYLim); ax1.TraceYLim = [-10 50]; end
-                        figure;
-                        if isempty(h1)
-                            h1 = histogram(CA_Measure{ctrace,9});
-                        else
-                            histogram(CA_Measure{ctrace,9},h1.BinEdges)
-                        end
-                        ax1i = gca;
-                        ax1i.YLim = [0 25];
-                        ylabel('Number of events')
-                        xlabel('Amplitude (a.u.)')
-                        if ShowTrace(ctraceidx) == 1; ornind = 'st'; elseif ShowTrace(ctraceidx) == 2; ornind = 'nd';...
-                        elseif ShowTrace(ctraceidx) == 3; ornind = 'rd'; else ornind = 'th'; 
-                        end
-                        title(strcat('"',num2str(ShowTrace(ctraceidx)),ornind,'" most active ROI in condition: "', num2str(cConditionIdx), '"')) 
-
-                        CA_ewexpan = CA_Measure{CA_Mcount,11};
-                        numevents = size(CA_ewexpan, 2);
+                if ~isempty(ShowTrace)
+                    for ctraceidx = 1 : numel(ShowTrace)
+                        ctrace = ShowTrace(ctraceidx);
+                        plotCompleteTrace(ctrace, CA_Measure, BinIntData, ROIidxstore,... 
+                            lineWidth, markerSize, ShowTrace, [], suffixStrs, ctraceidx, CellName,...
+                            cConditionIdx, 'ShowTrace', TraceYLim)
+                    end
+                    plotHistogram(h1, ctrace, ctraceidx, CA_Measure, cConditionIdx, CA_Mcount, ShowTrace)
+                end
+                if ~isempty(SelectTrace)
+                    for cSelectTraceIdx = 1 : numel(SelectTrace)
+                        ctrace = find(cell2mat(CA_Measure(:,2)) == SelectTrace(cSelectTraceIdx));
+%                         ctrace = SelectTrace(ctraceidx);
+                        plotCompleteTrace(ctrace, CA_Measure, BinIntData, ROIidxstore,... 
+                            lineWidth, markerSize, [], SelectTrace,suffixStrs, cSelectTraceIdx, CellName,...
+                            cConditionIdx, 'SelectTrace', TraceYLim)
                     end
                 end
+                    
             end
+            
             BinIntData_binary = BinIntData;
             invbid = bidlog == 0;
             BinIntData_binary(invbid) = 0;
@@ -641,6 +623,69 @@ if iscell(Dirs)
 %                 
 %             end
     end
+end
+end
+
+function plotCompleteTrace(ctrace, CA_Measure, BinIntData, ROIidxstore,... 
+    lineWidth, markerSize, ShowTrace, SelectTrace, suffixStrs, ctraceidx, CellName,...
+    cConditionIdx, TraceType, TraceYLim)
+
+    ybases = CA_Measure{ctrace,7}; ypeaks = CA_Measure{ctrace,8};
+    xbases = CA_Measure{ctrace,5}; xpeaks = CA_Measure{ctrace,6};
+    figure('Name', strcat('CA_ROIs index: "', num2str(ROIidxstore(CA_Measure{ctrace,1})),'"'));
+    plot(BinIntData(CA_Measure{ctrace,1},:),'k', 'LineWidth', lineWidth)
+    ax = gca; ax.TickDir = 'out'; 
+    if ~isempty(ybases)
+        hold on
+        plot(xbases,ybases,'.','Color', [0 0.75 0], 'MarkerSize', markerSize)
+        plot(xpeaks,ypeaks,'r.','MarkerSize', markerSize)
+        hold off
+        if strcmp(TraceType, 'ShowTrace')
+            if ShowTrace(ctraceidx) == 1
+                titlestr = '1st most active ROI for "';
+            elseif ShowTrace(ctraceidx) == 2
+                titlestr = '2nd most active ROI for "';
+            elseif ShowTrace(ctraceidx) == 3
+                titlestr = '3rd most active ROI for "';
+            else
+                titlestr = strcat(num2str(ShowTrace(ctraceidx)), 'th most active ROI for "');
+            end
+            title(strcat(titlestr, CellName, '"; Condition "', suffixStrs{cConditionIdx}, '"'))
+        elseif strcmp(TraceType, 'SelectTrace')
+            titlestr = strcat('Trace from ROI CA_ROIs{',num2str(SelectTrace), '}. "'); 
+            title(strcat(titlestr, CellName, '"; Condition "', suffixStrs{cConditionIdx}, '"')) 
+        end
+        ax1 = gca;
+        if ~isempty(TraceYLim); ax1.YLim = TraceYLim; end
+    end
+end
+
+function plotHistogram(h1, ctrace, ctraceidx, CA_Measure, cConditionIdx, CA_Mcount, ShowTrace)
+
+    
+    figure;
+    if isempty(h1)
+        h1 = histogram(CA_Measure{ctrace,9});
+    else
+        histogram(CA_Measure{ctrace,9},h1.BinEdges)
+    end
+    ax1i = gca;
+    ax1i.YLim = [0 25];
+    ylabel('Number of events')
+    xlabel('Amplitude (r.f.u.)')
+    if ShowTrace(ctraceidx) == 1 
+        ornind = 'st'; 
+    elseif ShowTrace(ctraceidx) == 2; 
+        ornind = 'nd';
+    elseif ShowTrace(ctraceidx) == 3; 
+        ornind = 'rd'; 
+    else
+        ornind = 'th';
+    end
+
+    title(strcat('"',num2str(ShowTrace(ctraceidx)),ornind,'" most active ROI in condition: "', num2str(cConditionIdx), '"')) 
+    CA_ewexpan = CA_Measure{CA_Mcount,11};
+    numevents = size(CA_ewexpan, 2);
 end
 
 
