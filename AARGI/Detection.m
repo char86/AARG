@@ -193,9 +193,6 @@ if iscell(AllDirs)
         for cFile = 1 : numfiles
             
             currentFile = dirInfo(cFile).name;
-            if strcmp(currentFile, 'CG0806171b_mib.tif')
-                stophere = 1;
-            end
             
             cStr = 0; quitWhile = 0; 
             if ~isempty(specifiedConditionIdx) 

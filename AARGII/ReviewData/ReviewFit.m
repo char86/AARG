@@ -10,7 +10,8 @@ textwidth = 0.3;
 textheight = 0.1;
 textvertspace = 0.3;
 
-fontsz = 16;
+fontsz = 16; %CG: FontSize for tally section.
+axesLabelFontSize = 18;
 
 if nargin == 0
     suffixStrs = {'a_baseline', 'b_TTAP2'};
@@ -92,7 +93,7 @@ if iscell(Dirs)
         %CG: get number of trace segments the user must inspect.
             try
                 
-%                 BreakTry
+               BreakTry
                undostring = data.undostring; parameters = data.parameters;
             catch
                 undostring = '';
@@ -230,9 +231,9 @@ if iscell(Dirs)
             xb_cfs = xbases_cfs(seg_indices(trace_idx)); xp_cfs = xpeaks_cfs(seg_indices(trace_idx));
 
             movegui(fh,'center'); 
-            ha.XLabel.String = 'number of frames'; ha.XLabel.FontSize = 14;
-            ha.YLabel.String = 'raw fluorescence units'; ha.YLabel.FontSize = 14;
-
+            ha.FontSize = axesLabelFontSize - 2;
+            ha.XLabel.String = 'number of frames'; ha.XLabel.FontSize = axesLabelFontSize;
+            ha.YLabel.String = 'raw fluorescence units'; ha.YLabel.FontSize = axesLabelFontSize;
 
 
             %CG: if buttons have been turned off, the user can use keys to carry out
@@ -344,8 +345,11 @@ if iscell(Dirs)
                             figure(fh); plot(X,Y); 
                             hold on;
                              
-                            ha.XLabel.String = 'number of frames'; ha.XLabel.FontSize = 14;
-                            ha.YLabel.String = 'raw fluorescence units'; ha.YLabel.FontSize = 14;
+                            ha.FontSize = axesLabelFontSize - 2;
+                            ha.XLabel.String = 'number of frames'; ha.XLabel.FontSize = axesLabelFontSize;
+                            ha.YLabel.String = 'raw fluorescence units'; ha.YLabel.FontSize = axesLabelFontSize;
+%                             ha.FontSize = axesLabelFontSize; 
+                            
                             AA=A; X=[1:0.1:X(end)]; 
                             Yf = myEXP_Shift([AA(1) AA(2) 0 AA(5)],X)-myEXP_Shift([AA(1) AA(3) 0 AA(5)],X) + AA(4);
                             plot(X,Yf);

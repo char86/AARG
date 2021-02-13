@@ -1,4 +1,8 @@
 function varargout = graphAARG(varargin)
+
+% Author: Charlie J Gilbride
+% version: 1.0.0
+
 % GRAPHAARG MATLAB code for graphAARG.fig
 %      GRAPHAARG, by itself, creates a new GRAPHAARG or raises the existing
 %      singleton*.

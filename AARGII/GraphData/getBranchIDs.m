@@ -6,6 +6,8 @@ function getBranchIDs(suffixStrs)
 %entered appropriately into the 'Branch ID' text box. For more information
 %look at the Help file for AARGII.
 
+% Author: Charlie J Gilbride
+% version: 1.0.0
 datadir = uipickfiles('prompt','Select data folder to find branch numbers');
 if nargin == 0
     suffixStrs = {'b_TTAP2'};

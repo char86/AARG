@@ -231,6 +231,9 @@ if iscell(datadirs) && ~isempty(datadirs)
 
         tifnameIdx = strfind(file,'.tif'); FileName = file(1:tifnameIdx-1);
         file = double(imread(file,framesel));
+%CG: just in case imread imports all frames instead of just the one frame
+%specified by framesel:
+        if numel(size(file)) == 3; file = file(:,:,framesel); end
         fh = figure('Name', strcat('"',FileName, '"; frame "', num2str(framesel),'"'),'Visible','Off'); imagesc(file); colormap jet
         
         left = screensize(3)*0.2; bot = screensize(2);
@@ -256,7 +259,8 @@ if iscell(datadirs) && ~isempty(datadirs)
             if owctrl == 1
                 fh.Visible = 'On';
                 
-                shiftkey = getrect(ax1); rectangle('Position',shiftkey, 'EdgeColor', 'w')
+                shiftkey = getrect(ax1); 
+                rectangle('Position',shiftkey, 'EdgeColor', 'w')
                 save(strcat(CellName, '_shiftkey.mat'), 'shiftkey');
             end
             

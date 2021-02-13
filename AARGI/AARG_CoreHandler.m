@@ -238,7 +238,23 @@ if iscell(datadirs)
                         end
                     end
                 end
+%CG: (10Feb21) if the chunk label hits 10 then the file order gets messed up. To
+%ensure correct order of the files, the cells need to be indexed and
+%sorted. 
 
+%CG: (10Feb21) grab the chunk number from the file name to create the
+%index. 
+                numberOfDataFiles = size(TDFileList,1); 
+                indexDataFileList = zeros(numberOfDataFiles,1);
+                indexDataFileList(:) = NaN;
+                for cFileIdx = 1 : numberOfDataFiles
+                    numstr = regexp(TDFileList{cFileIdx}, '(?<=Chunk_)\d*', 'match');
+                    indexDataFileList(cFileIdx,1) = str2double(numstr{1});
+                end
+%                 indexDataFileList = cell2mat(indexDataFileCellArray); 
+                [~, idices] = sort(indexDataFileList, 'ascend');
+                TDFileList = TDFileList(idices);
+                
                 Sz_TDFileList = size(TDFileList); NumIDs = Sz_TDFileList(1)*Sz_TDFileList(2);
                 TotalChunkSize = 0;
 
@@ -273,6 +289,7 @@ if iscell(datadirs)
         end
         
         NumTDFs_baseline = ThresDataList{1, 2};
+        
         Sz_ThresDataList = size(ThresDataList);
         nExps = Sz_ThresDataList(1);
 %CG: nBaseExps is the number of experiments except the baseline.
@@ -287,14 +304,15 @@ if iscell(datadirs)
         %maxMaximaProjImg = zeros(170,170);
         %%%%%%testing  
         suppMat = []; suppMat_ROIs = []; suppCA = {}; suppCA_zSpace = {};
-        
-        if ~isempty(Parts2Take); disp('WARNING: Not all data being used!!'); end
+  
 %%%%%%testing 
 %         NumTDFs_baseline = 1;
         StartVal = 1;
 %CG: use StartVal to select which split file to work on. 
 %%%%%%testing   
-        if NumTDFs_baseline == 1 || StartVal ~= 1; disp('WARNING: Not all data being used!!'); end
+        if (NumTDFs_baseline == 1 || StartVal ~= 1) && ~isempty(Parts2Take); 
+            disp('WARNING: Not all data being used!!'); 
+        end
         
         for cFolderIdx = StartVal : NumTDFs_baseline 
             cFolder = TDFolders_sorted{cFolderIdx}; TDDir = strcat(datadir, '/', cFolder);
@@ -343,7 +361,6 @@ if iscell(datadirs)
                 if cFolderIdx == StartVal && LockOutc1 == 0
                     load(strcat(TDDir, '/', 'CAs', strinsert, 'Core_', DefString, '.mat'), 'CA_ROIs', 'CA_EventSize',...
                         'CA_NumEvents', 'CA_FrameIEI','CA_Indices','ProperCASize');
-                    
                     if figFate == 0
                         figH_ROIs4Show = figure('Name', strcat(DefString, ': Established ROIs'), 'NumberTitle', 'Off');
                         data = load(TDFileList{1}); fmedian = data.fmedian;
@@ -554,7 +571,9 @@ if iscell(datadirs)
 %             cumulTD = 4;
             StartVal = startpnt+1;
 %%%%%%%testing  
-            if StartVal ~= startpnt+1; disp('WARNING: Not all data being used!!'); end
+            if StartVal ~= startpnt+1; 
+                disp('WARNING: Not all data being used!!'); 
+            end
             
             for cFolderIdx = StartVal : cumulTD
 %CG: the second column of the ThresDataList will give the number total

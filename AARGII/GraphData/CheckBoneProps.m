@@ -5,6 +5,9 @@ function CheckBoneProps
 %know the distance of start point from the cell body when the cell body is
 %not part of the timelapse image. 
 
+% Author: Charlie J Gilbride
+% version: 1.0.0
+
 datadir = uigetdir('Select data folder for CellBones');
 suffixStrs = {'b_TTAP2'};
 

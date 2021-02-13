@@ -215,7 +215,7 @@ if iscell(Dirs)
                 end
                 
                 cd(cDir)
-                xdim512 = size(imread(cItem,1),1); ydim512 = size(imread(cItem,1),1);
+                xdim512 = size(imread(cItem,1),1); ydim512 = size(imread(cItem,1),2);
                 
                 Slashes = strfind(tdf,'/');
                 fileorder = load(strcat(TDFolders_sorted{cParti}, '/', tdf(Slashes(end)+1:end),'_FileOrder.mat'));
@@ -366,7 +366,8 @@ if isempty(lastStr) || ~strcmp(cStr, lastStr)
             ROI_map(cellcounter,1) = r; ROI_map(cellcounter,2) = c;
             ROI_map(cellcounter,3) = z;
 
-            [rr,cc] = ind2sub([170,170], CA_ROIs{cCellIdx}); rr=rr.*3; cc=cc.*3;
+            [rr,cc] = ind2sub([xdim170,xdim170], CA_ROIs{cCellIdx}); 
+            rr=rr.*3; cc=cc.*3;
             new_ROI_sl = numel(CA_ROIs{cCellIdx}); ROI_sl = sqrt(numel(CA_ROIs{cCellIdx}));
             rr_new = (rr(1)-1:1:rr(ROI_sl)+1); rr_new = repmat(rr_new,1,new_ROI_sl);
             unique_cc = unique(cc); exp_unique_cc = (unique_cc(1)-1:1:unique_cc(end)+1);
@@ -377,6 +378,7 @@ if isempty(lastStr) || ~strcmp(cStr, lastStr)
                 if isempty(cc_new); cc_new = cc_new_ones;
                 else cc_new = cat(2,cc_new,cc_new_ones); end
             end
+
             Idces512 = sub2ind([xdim512, ydim512], rr_new, cc_new); ROI_Idx_map_Raw(cellcounter, :) = Idces512; 
             bw512(rr_new,cc_new)=1;
         end

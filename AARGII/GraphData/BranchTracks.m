@@ -33,6 +33,12 @@ function BranchTracks(datadirs, keywordStrs, expDirIndex, branchIDs,...
 % Author: Charlie J Gilbride
 % version: 1.0.0
 
+% Updates:
+% version: 1.0.1 - names of experiments (or cells) contributing to the
+% n-values are saved to the parent directory. This enables users to know
+% contribution from independent cell cultures. These names are saved to the
+% nested cell array Ncells
+
 if nargin == 0
     load('directories.mat','datadirs')
     %datadirs = uipickfiles('prompt','Select data folder(s)');
@@ -451,7 +457,7 @@ rem = mod(ceil(grand_max), distanceBins); LastEdge = ceil(grand_max)-rem;
 SizeBins = (0:distanceBins:LastEdge+distanceBins); NumBins = numel(SizeBins);
 NumConditions = size(suffixStrs,2); CA_Bins = cell(NumConditions,NumBins-1);
 for cDirIdx = 1 : NumDirs
-    cd(datadirs{cDirIdx}); %[~, CellName, ~] = fileparts(datadirs{cDirIdx});
+    cd(datadirs{cDirIdx}); [~, CellName, ~] = fileparts(datadirs{cDirIdx});
     for cCondIdx = 1 : NumConditions
         CA_BranchGroups = dirdata(cDirIdx,cCondIdx).bgrps; 
         BranchPntDistMtx = dirdata(cDirIdx,cCondIdx).distmtx;
@@ -484,6 +490,8 @@ for cDirIdx = 1 : NumDirs
                             binstr.decays = cstr(cROIIdx).decays;
                             binstr.distance = cstr(cROIIdx).distance;
                             binstr.contribution = nContribution;
+                            %CG: v1.0.1
+                            binstr.cellName = CellName;
                         elseif ~isempty(CA_Bins{cCondIdx,cSizeIdx-1})
                             binstr = CA_Bins{cCondIdx,cSizeIdx-1};
                             NumPreROIs = size(binstr,2);
@@ -493,6 +501,8 @@ for cDirIdx = 1 : NumDirs
                             binstr(NumPreROIs+1).decays = cstr(cROIIdx).decays;
                             binstr(NumPreROIs+1).distance = cstr(cROIIdx).distance;
                             binstr(NumPreROIs+1).contribution = nContribution;
+                            %CG: v1.0.1
+                            binstr(NumPreROIs+1).cellName = CellName;
                         end
                         CA_Bins{cCondIdx,cSizeIdx-1} = binstr;
                     end
@@ -558,7 +568,9 @@ if iscell(datadirs) && ~isempty(datadirs)
 
     ansx = NumBins/2; 
     
-    Ndirs = cell(NumBins,NumConditions); Nbranches = cell(NumBins,NumConditions);
+    Ncells = cell(NumBins,NumConditions);
+    Ndirs = cell(NumBins,NumConditions); 
+    Nbranches = cell(NumBins,NumConditions);
     ROICounts = cell(NumBins,NumConditions);
     
     for cCondIdx = 1 : NumConditions
@@ -571,7 +583,7 @@ if iscell(datadirs) && ~isempty(datadirs)
             binstr = CA_Bins{cCondIdx,cBinIdx}; NumROIs = size(binstr,2); 
             if configStruct.displayPeakAmplitude == 1; amps = []; end
             if configStruct.displayDecayTimeConstant == 1; decays = []; end
-            if configStruct.displayNValues == 1; nContributions = []; end
+            if configStruct.displayNValues == 1; nContributions = []; nCellNames = {}; end
             ROICount = 0; 
             for cROIIdx = 1 : NumROIs
 %                 if cROIIdx == 53
@@ -581,6 +593,7 @@ if iscell(datadirs) && ~isempty(datadirs)
                     amps = [amps,binstr(cROIIdx).amps];
                     if configStruct.displayNValues == 1 && sum(~isnan(binstr(cROIIdx).amps)) > 0;
                         nContributions = [nContributions; binstr(cROIIdx).contribution];
+                        if isempty(nCellNames); nCellNames{1} = binstr(cROIIdx).cellName; else nCellNames{end+1,1} = binstr(cROIIdx).cellName; end
                         ROICount = ROICount + 1;
                     end
                 end
@@ -588,6 +601,7 @@ if iscell(datadirs) && ~isempty(datadirs)
                     decays = [decays,binstr(cROIIdx).decays];
                     if configStruct.displayNValues == 1 && sum(~isnan(binstr(cROIIdx).decays)) > 0;
                         nContributions = [nContributions; binstr(cROIIdx).contribution];
+                        if isempty(nCellNames); nCellNames{1} = binstr(cROIIdx).cellName; else nCellNames{end+1,1} = binstr(cROIIdx).cellName; end
                         ROICount = ROICount + 1;
                     end
                 end
@@ -619,6 +633,7 @@ if iscell(datadirs) && ~isempty(datadirs)
             if notEnoughData == 0
             
                 if configStruct.displayNValues == 1;
+                    unique_nCellNames = {}; %CG: v1.0.1
                     uniqueNDirs = unique(nContributions(:,1));
                     Ndirs{cBinIdx,cCondIdx} = numel(uniqueNDirs); NbranchesArray = [];
                     for cDirIdx = 1 : Ndirs{cBinIdx,cCondIdx}
@@ -626,8 +641,15 @@ if iscell(datadirs) && ~isempty(datadirs)
                         branchIDs = nContributions(:,2);
                         targetIndices = directorySelection == cDir;
                         NbranchesArray = [NbranchesArray, numel(unique(branchIDs(targetIndices)))];
+                        
+                        % CG: also retrieve names for all contibuting
+                        % cells for update v1.0.1
+                        targetNames = nCellNames(targetIndices);
+                        unique_nCellNames(cDirIdx,1) = targetNames(1);
+                       
                     end
                     Nbranches{cBinIdx,cCondIdx} = sum(NbranchesArray);
+                    Ncells{cBinIdx,cCondIdx} = {unique_nCellNames};
                 end
 
 
@@ -662,6 +684,10 @@ if iscell(datadirs) && ~isempty(datadirs)
                         end
 
                         if configStruct.displayNValues == 1;
+                            firstDir = datadirs{1}; slashes = strfind(datadirs{1}, '/'); parentDir = firstDir(1:slashes(end)); 
+                            cd(parentDir) 
+                            save('NamesOfExperimentsForN.mat', 'Ncells')
+                            
                             labelNdirs = strcat('N = "',num2str(Ndirs{cBinIdx,1}),'/', num2str(Ndirs{cBinIdx,cCondIdx}), '" experiments');
                             labelNbranches = strcat('N = "',num2str(Nbranches{cBinIdx,1}), '/', num2str(Nbranches{cBinIdx,cCondIdx}), '" branches');
                             labelNrois = strcat('N = "',num2str(ROICounts{cBinIdx,1}), '/', num2str(ROICounts{cBinIdx,cCondIdx}), '" ROIs');

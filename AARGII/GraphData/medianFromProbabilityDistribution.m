@@ -1,6 +1,9 @@
 function [medianAmp, medianDecay] = ...
     medianFromProbabilityDistribution(ampsForCurrentDir, decaysForCurrentDir, fh_hist)
 
+% Author: Charlie J Gilbride
+% version: 1.0.0
+
 if ~isempty(ampsForCurrentDir)
     %CG: collect the median amplitude...
     figure(fh_hist); fh_hist.Visible = 'Off';

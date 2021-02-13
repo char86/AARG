@@ -64,8 +64,16 @@ while ~done && ~abortswitch
 %that the user has chosen not to add any additional white line. 
                     but = 3;
                 elseif strcmp(lastAction, 'normal')
-                    but = 1; currpt = get(axishandle, 'CurrentPoint');
-                    linehandle_error = 'noerror'; lastAction = 'a-press-but-no-alt-click';
+%                     but = 1; currpt = get(axishandle, 'CurrentPoint');
+%CG: (10Feb2021) in this instance the user has pressed 'a' without
+%cancelling line building. Why would getline_CG_CellBones need to collect
+%the currpt variable in this case? currpt does not get updated from the
+%last round and simply leads to repeated values. This causes subfunctions
+%in CellBones to throw an error at least with the sample data. This problem
+%might not have emerged previously with the full field of view datasets
+%because the lines were longer and perhaps the subfunction, spline, could
+%handle one duplication? 
+                    but = 3; linehandle_error = 'noerror'; lastAction = 'a-press-but-no-alt-click';
                 end
                
             elseif ~isempty(KeyPressRes)
@@ -104,7 +112,6 @@ while ~done && ~abortswitch
 
                     [~, cloIdx_X] = min(abs(diff_cp_X));
                     [~, cloIdx_Y] = min(abs(diff_cp_Y));
-                    currpt
                     if cloIdx_X ~= cloIdx_Y
                         p = randperm(2,1);
 %CG: not clear why, but even if you take the coordinate pair with the shortest
@@ -142,7 +149,6 @@ while ~done && ~abortswitch
             end
 
         end
-        get(cObj,'type')
         if ~strcmp(get(cObj,'type'), 'patch') &&...
             ~strcmp(get(cObj,'type'), 'line') && isempty(xpts)
             if ~isempty(KeyPressRes)

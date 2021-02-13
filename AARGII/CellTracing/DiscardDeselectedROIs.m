@@ -1,4 +1,4 @@
-function [CA_Bones] = DiscardDeselectedROIs(skeleton)
+function [CA_Bones] = DiscardDeselectedROIs(skeleton, whiteROI, anotherROI, anotherColor)
 
 RightWhiteLines = [];
 CA_ROIc = skeleton.CA_ROIc; CA_id = skeleton.CA_id;
@@ -11,8 +11,7 @@ else
     NumBranches = 1;
 end
 RightROIidces = [];
-whiteROI = []; %CG: old code -> used for figure display purposes. 
-%     whiteROI = [13214 31947 40225]
+
 for cBranch = 1 : NumBranches
     
     id_idx = CA_id{cBranch,1};
@@ -34,7 +33,15 @@ for cBranch = 1 : NumBranches
                     set(CA_ROIc{cROIidx, 6}, 'Linewidth', 0.5);
                     set(CA_ROIc{cROIidx, 6}, 'Visible', 'on');
                     set(CA_ROIc{cROIidx, 2}, 'Visible', 'on');
-                    set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 0 0]);
+                    if ~isempty(find(whiteROI == CA_ROIc{cROIidx,3}, 1))
+                        set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 1 1]);
+                    elseif ~isempty(find(anotherROI == CA_ROIc{cROIidx,3}, 1))
+                        set(CA_ROIc{cROIidx, 2}, 'FaceColor', anotherColor);
+                    else
+                        set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 0 0]);
+                    end
+                        
+                        
             else
 %CG: if there is no connecting green line, then the ROI is excluded from
 %analysis and should also be excluded from display.
@@ -50,15 +57,17 @@ for cBranch = 1 : NumBranches
                     isempty(find(RightROIidces == cROIidx,1))
 
                 set(CA_ROIc{cROIidx, 2}, 'Visible', 'off');
-                set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 0 0]);
+                if ~isempty(find(whiteROI == CA_ROIc{cROIidx,3}, 1))
+                    set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 1 1]);
+                elseif ~isempty(find(anotherROI == CA_ROIc{cROIidx,3}, 1))
+                    set(CA_ROIc{cROIidx, 2}, 'FaceColor', anotherColor);
+                else
+                    set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 0 0]);
+                end
                 if ~isempty(CA_ROIc{cROIidx, 6})
                     set(CA_ROIc{cROIidx, 6}, 'Visible', 'off');
 
                 end
-        end
-        if ~isempty(find(whiteROI == CA_ROIc{cROIidx, 3},1))
-            set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 1 1]);
-            set(CA_ROIc{cROIidx, 2}, 'EdgeColor', [1 1 1]);
         end
         if ~isempty(subsidROIList)
             if ~isempty(find(subsidROIList(:,1) == CA_ROIc{cROIidx, 3},1))

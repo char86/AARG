@@ -1,4 +1,8 @@
 function varargout = configureGraphs(varargin)
+
+% Author: Charlie J Gilbride
+% version: 1.0.0
+
 % CONFIGUREGRAPHS MATLAB code for configureGraphs.fig
 %      CONFIGUREGRAPHS, by itself, creates a new CONFIGUREGRAPHS or raises the existing
 %      singleton*.

@@ -1,5 +1,8 @@
 function [CA_BinMedians] = AddMedianField(CA_Bins,suffixStrs,NumDirs)
 
+% Author: Charlie J Gilbride
+% version: 1.0.0
+
 %CG: CA_BinMedians will be the main input argument for GraphMedianData. 
 NumConditions = size(suffixStrs,2); NumBins = size(CA_Bins,2); CA_BinMedians = {}; 
 fh_hist = figure('Visible','Off');

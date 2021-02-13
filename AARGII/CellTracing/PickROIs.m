@@ -1,4 +1,4 @@
-function [CA_id,CA_Distances,subsidROIList] = PickROIs(disbran,skeleton)
+function [CA_id,CA_Distances,subsidROIList] = PickROIs(disbran,skeleton, whiteROI, anotherROI, anotherColor)
 
 datadir = disbran.datadir; Resize = disbran.Resize; fmedianRGB = disbran.fmedianRGB;
 DispOnlyProperROIs = 'Off';
@@ -51,6 +51,7 @@ if iscell(datadir)
         left = screensize(3)*0.2;
         bot = screensize(2); wid = screensize(3)*0.66; hei =  screensize(4);
         imagesc(fmedianRGB);
+        
         set(gca, 'XTickLabel', '', 'TickLength', [0 0]);
         set(gca, 'YTickLabel', '', 'TickLength', [0 0]);
         set(gca, 'box', 'off'); 
@@ -73,7 +74,6 @@ if iscell(datadir)
         end
 
         RightWhiteLines = [];
-        whiteROI = [];
         CA_ROIc = skeleton.CA_ROIc; Sz_CA_ROIc = size(CA_ROIc);
         
         for cROIidx = 1 : Sz_CA_ROIc(1)
@@ -83,10 +83,10 @@ if iscell(datadir)
             if ~isempty(CA_ROIc{cROIidx, 6})
                 set(CA_ROIc{cROIidx, 6}, 'Parent', gca);
             end
-            if ~isempty(find(whiteROI == CA_ROIc{cROIidx, 3},1))
-                set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 1 1]);
-                set(CA_ROIc{cROIidx, 2}, 'EdgeColor', [1 1 1]);
-            end
+%             if ~isempty(find(whiteROI == CA_ROIc{cROIidx, 3},1))
+%                 set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 1 1]);
+%                 set(CA_ROIc{cROIidx, 2}, 'EdgeColor', [1 1 1]);
+%             end
             if ~isempty(subsidROIList)
 %CG: necessary? subsidary ROIs should already be deleted from CA_ROIs and
 %should therefore not pass to CA_ROIc. 
@@ -122,7 +122,13 @@ if iscell(datadir)
                             Sz_id_idx = size(id_idx);
                             for cidx = 1 : Sz_id_idx(1)
                                 cvec_idx = id_idx(cidx,2);
-                                set(CA_ROIc{cvec_idx,2}, 'FaceColor', [1 0 0])
+                                if ~isempty(find(whiteROI == CA_ROIc{cROIidx,3}, 1))
+                                    set(CA_ROIc{cvec_idx,2}, 'FaceColor', [1 1 1])
+                                elseif ~isempty(find(anotherROI == CA_ROIc{cROIidx,3}, 1))
+                                    set(CA_ROIc{cvec_idx,2}, 'FaceColor', anotherColor)
+                                else
+                                    set(CA_ROIc{cvec_idx,2}, 'FaceColor', [1 0 0])
+                                end
                             end
                         end
                     else
@@ -165,10 +171,13 @@ if iscell(datadir)
                     if strcmp(ClassDef, 'matlab.graphics.primitive.Patch')
 
                         fc = get(cObj, 'FaceColor'); fc_red = fc - [1 0 0];
+                        fc_white = fc - [1 1 1]; fc_anotherColor = fc - anotherColor;
                         fc_blue = fc - [0 0 1]; cobjx = get(cObj, 'XData');
                         cobjy = get(cObj, 'YData');
 
-                        if sum(fc_red) == 0 && isempty(find(fc_red,1))
+                        if (sum(fc_red) == 0 && isempty(find(fc_red,1))) || ...
+                                (sum(fc_white) == 0 && isempty(find(fc_white,1))) || ...
+                                    (sum(fc_anotherColor) == 0 && isempty(find(fc_anotherColor,1)))
 %CG: if the color of the clicked ROI is red. 
 %CG: get all white lines lying between the current ROI and the connecting
 %start point.
@@ -272,7 +281,14 @@ if iscell(datadir)
 
                                     NumROIsOnLine = numel(ROIsOnLine);
                                     for cROIon = 1 : NumROIsOnLine
-                                        set(CA_ROIc{ROIsOnLine(cROIon),2}, 'FaceColor', [1 0 0])
+                                        
+                                        if ~isempty(find(whiteROI == CA_ROIc{cROIidx,3}, 1))
+                                            set(CA_ROIc{ROIsOnLine(cROIon),2}, 'FaceColor', [1 1 1])
+                                        elseif ~isempty(find(anotherROI == CA_ROIc{cROIidx,3}, 1))
+                                            set(CA_ROIc{ROIsOnLine(cROIon),2}, 'FaceColor', anotherColor)
+                                        else
+                                            set(CA_ROIc{ROIsOnLine(cROIon),2}, 'FaceColor', [1 0 0])
+                                        end
                                     end
                                 end
                             end
@@ -289,7 +305,14 @@ if iscell(datadir)
                             Sz_id_idx = size(id_idx);
                             for cidx = 1 : Sz_id_idx(1)
                                 cvec_idx = id_idx(cidx,2);
-                                set(CA_ROIc{cvec_idx,2}, 'FaceColor', [1 0 0])
+                                if ~isempty(find(whiteROI == CA_ROIc{cROIidx,3}, 1))
+                                    set(CA_ROIc{cvec_idx,2}, 'FaceColor', [1 1 1])
+                                elseif ~isempty(find(anotherROI == CA_ROIc{cROIidx,3}, 1))
+                                    set(CA_ROIc{cvec_idx,2}, 'FaceColor', anotherColor)
+                                else
+                                    set(CA_ROIc{cvec_idx,2}, 'FaceColor', [1 0 0])
+                                end
+                                    
                             end
 
                             if arraysize == 1
@@ -350,7 +373,15 @@ if iscell(datadir)
             set(CA_ROIc{cROIidx, 2}, 'Parent', gca);
             if ~isempty(id_idx)
                 if ~isempty(find(id_idx(:,1) == CA_ROIc{cROIidx, 3},1))
-                    set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 0 0]);
+                    
+                    if ~isempty(find(whiteROI == CA_ROIc{cROIidx,3}, 1))
+                        set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 1 1]);
+                    elseif ~isempty(find(anotherROI == CA_ROIc{cROIidx,3}, 1))
+                        set(CA_ROIc{cROIidx, 2}, 'FaceColor', anotherColor);
+                    else
+                        set(CA_ROIc{cROIidx, 2}, 'FaceColor', [1 0 0]);
+                    end
+                    
                     if ~isempty(CA_ROIc{cROIidx, 6})
                         set(CA_ROIc{cROIidx, 6}, 'Parent', gca);
                     end

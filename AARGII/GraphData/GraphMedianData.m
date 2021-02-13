@@ -201,7 +201,7 @@ if iscell(datadirs) && ~isempty(datadirs)
         ax1 = gca; hold(ax1,'on');
         
         dataStruct = CA_GreyLineData{cBinIdx};
-        if size(dataStruct,2) == NumConditions
+        if size(dataStruct,2) == NumConditions && NumConditions > 1
             xx = []; yy = [];
             for cConditionIdx = 1 : NumConditions
                 xx = [xx;dataStruct(cConditionIdx).xValues];
@@ -224,10 +224,12 @@ if iscell(datadirs) && ~isempty(datadirs)
             for cDataPointIdx = 1 : NumDataPoints
                 plot(xx(:,cDataPointIdx), yy(:,cDataPointIdx), '-', 'Color', [0.75 0.75 0.75])
             end
-        elseif size(dataStruct,2) < NumConditions
+        elseif size(dataStruct,2) < NumConditions 
             disp('Not enough data error: ned error2')
         elseif size(dataStruct,2) > NumConditions
             disp('Unknown error: unknown error1')
+        elseif NumConditions ~= 2
+            disp('ERROR: Two conditions are need for a meaningful plot!')
         end
         
     end
